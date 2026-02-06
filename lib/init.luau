@@ -1,7 +1,7 @@
 --!native
 --!strict
 
-local RunService = game:GetService('RunService')
+local RunService = game:GetService("RunService")
 
 local Geometry = require(script.Geometry)
 local SpatialIndex = require(script.SpatialIndex)
@@ -31,7 +31,7 @@ end
 
 RunService.Heartbeat:Connect(function()
 	if State.pendingRebuild then
-		debug.profilebegin('QuickBounds_Build')
+		debug.profilebegin("QuickBounds_Build")
 		State.rootNode = SpatialIndex.Build(State.objects)
 		State.pendingRebuild = false
 		debug.profileend()
@@ -42,7 +42,7 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	debug.profilebegin('QuickBounds_Step')
+	debug.profilebegin("QuickBounds_Step")
 	local start = os.clock()
 	local processed = 0
 	local forceRefresh = State.isDirty
@@ -157,23 +157,52 @@ RunService.Heartbeat:Connect(function()
 	debug.profileend()
 end)
 
+export type Group = Types.Group
+export type Zone = Types.Zone
+export type Trackable = Types.Trackable
+
 return {
 	newZone = Zone.new,
 	newGroup = Group.new,
 
 	newZoneFromPart = function(part: BasePart): Types.Zone
-		local shape: Types.ShapeType = 'Block'
+		local shape: Types.ShapeType = "Block"
 		if (part :: any).Shape == Enum.PartType.Ball then
-			shape = 'Ball'
+			shape = "Ball"
 		elseif (part :: any).Shape == Enum.PartType.Cylinder then
-			shape = 'Cylinder'
+			shape = "Cylinder"
 		end
 		return Zone.new(part.CFrame, part.Size, shape, part)
 	end,
 
-	isItemTracked = Group.isItemTracked, -- Helper mapping
+	IsItemTrackable = function(item: any): boolean
+		if typeof(item) == "Instance" then
+			if item:IsA("BasePart") then
+				return true
+			elseif item:IsA("Attachment") or item:IsA("Bone") then
+				return true
+			elseif item:IsA("Camera") then
+				return true
+			elseif item:IsA("Model") then
+				return true
+			end
+		elseif typeof(item) == "table" then
+			if item.Position then
+				return true
+			elseif item.CFrame then
+				return true
+			elseif item.WorldPosition then
+				return true
+			elseif item.GetPivot then
+				return true
+			end
+		end
+		return false
+	end,
 
-	getGroupsForItem = function(trackable: Types.Trackable): { Types.Group }
+	IsItemTracked = Group.IsItemTracked,
+
+	GetGroupsForItem = function(trackable: Types.Trackable): { Types.Group }
 		local data = State.trackables[trackable]
 		if not data then
 			return {}
@@ -188,7 +217,7 @@ return {
 		return results
 	end,
 
-	getGroupsAtItem = function(trackable: Types.Trackable): { Types.Group }
+	GetGroupsAtItem = function(trackable: Types.Trackable): { Types.Group }
 		local data = State.trackables[trackable]
 		if not data then
 			return {}
@@ -203,7 +232,7 @@ return {
 		return results
 	end,
 
-	getGroupsAtPoint = function(position: Vector3): { Types.Group }
+	GetGroupsAtPoint = function(position: Vector3): { Types.Group }
 		local results = {}
 		local foundUIDs = {}
 		if State.rootNode then
@@ -227,7 +256,7 @@ return {
 		return results
 	end,
 
-	setFrameBudget = function(n)
+	SetFrameBudget = function(n: number)
 		State.frameBudget = n
 	end,
 }

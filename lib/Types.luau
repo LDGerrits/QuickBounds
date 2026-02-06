@@ -1,6 +1,6 @@
 --!strict
 
-export type ShapeType = 'Block' | 'Ball' | 'Cylinder' | 'Wedge' | 'CornerWedge'
+export type ShapeType = "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
 
 export type BoundingVolume = {
 	Position: Vector3,
@@ -47,10 +47,10 @@ export type TrackableData = {
 }
 
 export type Zone = {
-	bindToGroups: (zone: Zone, ...Group) -> (),
-	unbindToGroups: (zone: Zone, ...Group) -> (),
-	getGroups: (zone: Zone) -> { Group },
-	destroy: (zone: Zone) -> (),
+	BindToGroups: (zone: Zone, ...Group) -> (),
+	UnbindFromGroups: (zone: Zone, ...Group) -> (),
+	GetGroups: (zone: Zone) -> { Group },
+	Destroy: (zone: Zone) -> (),
 	index: number,
 	part: BasePart?,
 }
@@ -58,18 +58,18 @@ export type Zone = {
 export type Callback = (Trackable, Zone, any?) -> ()
 
 export type Group = {
-	trackItem: (self: Group, trackable: Trackable, customData: any?) -> (),
-	untrackItem: (self: Group, trackable: Trackable) -> (),
-	setPriority: (self: Group, priority: number) -> (),
-	isItemInside: (self: Group, trackable: Trackable) -> boolean,
-	isPointInside: (self: Group, position: Vector3) -> boolean,
-	isItemTracked: (self: Group, trackable: Trackable) -> boolean,
-	getTrackedItems: (self: Group) -> { Trackable },
-	getItemsInside: (self: Group) -> { Trackable },
-	getZones: (self: Group) -> { Zone },
-	destroy: (self: Group) -> (),
-	onEntered: (self: Group, callback: Callback) -> () -> (),
-	onExited: (self: Group, callback: Callback) -> () -> (),
+	TrackItem: (self: Group, trackable: Trackable, customData: any?) -> (),
+	UntrackItem: (self: Group, trackable: Trackable) -> (),
+	SetPriority: (self: Group, priority: number) -> (),
+	IsItemInside: (self: Group, trackable: Trackable) -> boolean,
+	IsPointInside: (self: Group, position: Vector3) -> boolean,
+	IsItemTracked: (self: Group, trackable: Trackable) -> boolean,
+	GetTrackedItems: (self: Group) -> { Trackable },
+	GetItemsInside: (self: Group) -> { Trackable },
+	GetZones: (self: Group) -> { Zone },
+	Destroy: (self: Group) -> (),
+	OnEntered: (self: Group, callback: Callback) -> () -> (),
+	OnExited: (self: Group, callback: Callback) -> () -> (),
 	UID: UID,
 }
 

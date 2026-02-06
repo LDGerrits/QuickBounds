@@ -21,28 +21,28 @@ function Group.new(priority: number?): Types.Group
 	State.groupPriorityMap[g.UID] = priority or 1e6
 	State.groupEnteredCallbacks[g.UID] = {}
 	State.groupExitedCallbacks[g.UID] = {}
-	State.groupActiveMembers[g.UID] = setmetatable({}, { __mode = 'k' }) :: any
+	State.groupActiveMembers[g.UID] = setmetatable({}, { __mode = "k" }) :: any
 	State.groupUIDToGroupObj[g.UID] = g
 
 	State.nextGroupId += 1
 	return g
 end
 
-function Group:trackItem(trackable: Types.Trackable, customData: any?)
+function Group:TrackItem(trackable: Types.Trackable, customData: any?)
 	local data = State.trackables[trackable]
 	if not data then
 		local strat
-		if typeof(trackable) == 'Instance' then
-			if trackable:IsA('BasePart') then
+		if typeof(trackable) == "Instance" then
+			if trackable:IsA("BasePart") then
 				strat = STRAT_POS
-			elseif trackable:IsA('Attachment') or trackable:IsA('Bone') then
+			elseif trackable:IsA("Attachment") or trackable:IsA("Bone") then
 				strat = STRAT_WORLD
-			elseif trackable:IsA('Camera') then
+			elseif trackable:IsA("Camera") then
 				strat = STRAT_CFRAME
-			elseif trackable:IsA('Model') then
+			elseif trackable:IsA("Model") then
 				strat = trackable.PrimaryPart and STRAT_PRIM or STRAT_PIVOT
 			end
-		elseif typeof(trackable) == 'table' then
+		elseif typeof(trackable) == "table" then
 			if trackable.Position then
 				strat = STRAT_POS
 			elseif trackable.CFrame then
@@ -55,7 +55,7 @@ function Group:trackItem(trackable: Types.Trackable, customData: any?)
 		end
 
 		if not strat then
-			error('Invalid trackable')
+			error("Invalid trackable")
 			return
 		end
 
@@ -80,7 +80,7 @@ function Group:trackItem(trackable: Types.Trackable, customData: any?)
 	data.isDirty = true
 end
 
-function Group:untrackItem(trackable: Types.Trackable)
+function Group:UntrackItem(trackable: Types.Trackable)
 	local data = State.trackables[trackable]
 	if not data then
 		return
@@ -118,12 +118,12 @@ function Group:untrackItem(trackable: Types.Trackable)
 	end
 end
 
-function Group:setPriority(p: number)
+function Group:SetPriority(p: number)
 	State.groupPriorityMap[self.UID] = p
 	State.isDirty = true
 end
 
-function Group:isItemInside(trackable: Types.Trackable): boolean
+function Group:IsItemInside(trackable: Types.Trackable): boolean
 	local data = State.trackables[trackable]
 	if not data then
 		return false
@@ -131,7 +131,7 @@ function Group:isItemInside(trackable: Types.Trackable): boolean
 	return data.activeGroupMemberships[self.UID] ~= nil
 end
 
-function Group:isItemTracked(trackable: Types.Trackable): boolean
+function Group:IsItemTracked(trackable: Types.Trackable): boolean
 	local data = State.trackables[trackable]
 	if not data then
 		return false
@@ -139,7 +139,7 @@ function Group:isItemTracked(trackable: Types.Trackable): boolean
 	return data.memberOfGroups[self.UID] == true
 end
 
-function Group:getTrackedItems(): { Types.Trackable }
+function Group:GetTrackedItems(): { Types.Trackable }
 	local results = {}
 	for t, data in pairs(State.trackables) do
 		if data.memberOfGroups[self.UID] then
@@ -149,7 +149,7 @@ function Group:getTrackedItems(): { Types.Trackable }
 	return results
 end
 
-function Group:getItemsInside(): { Types.Trackable }
+function Group:GetItemsInside(): { Types.Trackable }
 	local members = State.groupActiveMembers[self.UID]
 	if not members then
 		return {}
@@ -161,7 +161,7 @@ function Group:getItemsInside(): { Types.Trackable }
 	return results
 end
 
-function Group:getZones(): { Types.Zone }
+function Group:GetZones(): { Types.Zone }
 	local results = {}
 	for zoneIdx, watchingList in pairs(State.zoneWatchingGroups) do
 		if table.find(watchingList, self.UID) then
@@ -174,7 +174,7 @@ function Group:getZones(): { Types.Zone }
 	return results
 end
 
-function Group:isPointInside(position: Vector3): boolean
+function Group:IsPointInside(position: Vector3): boolean
 	if not State.rootNode then
 		return false
 	end
@@ -194,7 +194,7 @@ function Group:isPointInside(position: Vector3): boolean
 	return isInside
 end
 
-function Group:onEntered(callback)
+function Group:OnEntered(callback)
 	table.insert(State.groupEnteredCallbacks[self.UID], callback)
 	return function()
 		local i = table.find(State.groupEnteredCallbacks[self.UID], callback)
@@ -204,7 +204,7 @@ function Group:onEntered(callback)
 	end
 end
 
-function Group:onExited(callback)
+function Group:OnExited(callback)
 	table.insert(State.groupExitedCallbacks[self.UID], callback)
 	return function()
 		local i = table.find(State.groupExitedCallbacks[self.UID], callback)
@@ -214,7 +214,7 @@ function Group:onExited(callback)
 	end
 end
 
-function Group:destroy()
+function Group:Destroy()
 	local uid = self.UID
 
 	-- Remove from zones
@@ -228,7 +228,7 @@ function Group:destroy()
 
 	for t, data in pairs(State.trackables) do
 		if data.memberOfGroups[uid] then
-			self:untrackItem(t)
+			self:UntrackItem(t)
 		end
 	end
 
