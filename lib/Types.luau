@@ -1,6 +1,6 @@
 --!strict
 
-export type ShapeType = "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
+export type ShapeType = 'Block' | 'Ball' | 'Cylinder' | 'Wedge' | 'CornerWedge'
 
 export type BoundingVolume = {
 	Position: Vector3,
@@ -47,8 +47,8 @@ export type TrackableData = {
 }
 
 export type Zone = {
-	BindToGroups: (zone: Zone, ...Group) -> (),
-	UnbindFromGroups: (zone: Zone, ...Group) -> (),
+	BindToGroups: (zone: Zone, ...Group) -> Zone,
+	UnbindFromGroups: (zone: Zone, ...Group) -> Zone,
 	GetGroups: (zone: Zone) -> { Group },
 	Destroy: (zone: Zone) -> (),
 	index: number,
@@ -58,9 +58,11 @@ export type Zone = {
 export type Callback = (Trackable, Zone, any?) -> ()
 
 export type Group = {
-	TrackItem: (self: Group, trackable: Trackable, customData: any?) -> (),
-	UntrackItem: (self: Group, trackable: Trackable) -> (),
-	SetPriority: (self: Group, priority: number) -> (),
+	SetPriority: (self: Group, priority: number) -> Group,
+	TrackItem: (self: Group, trackable: Trackable, customData: any?) -> Group,
+	UntrackItem: (self: Group, trackable: Trackable) -> Group,
+	OnEntered: (self: Group, callback: Callback) -> () -> (),
+	OnExited: (self: Group, callback: Callback) -> () -> (),
 	IsItemInside: (self: Group, trackable: Trackable) -> boolean,
 	IsPointInside: (self: Group, position: Vector3) -> boolean,
 	IsItemTracked: (self: Group, trackable: Trackable) -> boolean,
@@ -68,8 +70,6 @@ export type Group = {
 	GetItemsInside: (self: Group) -> { Trackable },
 	GetZones: (self: Group) -> { Zone },
 	Destroy: (self: Group) -> (),
-	OnEntered: (self: Group, callback: Callback) -> () -> (),
-	OnExited: (self: Group, callback: Callback) -> () -> (),
 	UID: UID,
 }
 

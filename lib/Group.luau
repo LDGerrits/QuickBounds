@@ -21,28 +21,28 @@ function Group.new(priority: number?): Types.Group
 	State.groupPriorityMap[g.UID] = priority or 1e6
 	State.groupEnteredCallbacks[g.UID] = {}
 	State.groupExitedCallbacks[g.UID] = {}
-	State.groupActiveMembers[g.UID] = setmetatable({}, { __mode = "k" }) :: any
+	State.groupActiveMembers[g.UID] = setmetatable({}, { __mode = 'k' }) :: any
 	State.groupUIDToGroupObj[g.UID] = g
 
 	State.nextGroupId += 1
 	return g
 end
 
-function Group:TrackItem(trackable: Types.Trackable, customData: any?)
+function Group:TrackItem(trackable: Types.Trackable, customData: any?): Types.Group
 	local data = State.trackables[trackable]
 	if not data then
 		local strat
-		if typeof(trackable) == "Instance" then
-			if trackable:IsA("BasePart") then
+		if typeof(trackable) == 'Instance' then
+			if trackable:IsA('BasePart') then
 				strat = STRAT_POS
-			elseif trackable:IsA("Attachment") or trackable:IsA("Bone") then
+			elseif trackable:IsA('Attachment') or trackable:IsA('Bone') then
 				strat = STRAT_WORLD
-			elseif trackable:IsA("Camera") then
+			elseif trackable:IsA('Camera') then
 				strat = STRAT_CFRAME
-			elseif trackable:IsA("Model") then
+			elseif trackable:IsA('Model') then
 				strat = trackable.PrimaryPart and STRAT_PRIM or STRAT_PIVOT
 			end
-		elseif typeof(trackable) == "table" then
+		elseif typeof(trackable) == 'table' then
 			if trackable.Position then
 				strat = STRAT_POS
 			elseif trackable.CFrame then
@@ -55,7 +55,7 @@ function Group:TrackItem(trackable: Types.Trackable, customData: any?)
 		end
 
 		if not strat then
-			error("Invalid trackable")
+			error('Invalid trackable')
 			return
 		end
 
@@ -78,12 +78,14 @@ function Group:TrackItem(trackable: Types.Trackable, customData: any?)
 
 	data.memberOfGroups[self.UID] = true
 	data.isDirty = true
+
+	return self
 end
 
-function Group:UntrackItem(trackable: Types.Trackable)
+function Group:UntrackItem(trackable: Types.Trackable): Types.Group
 	local data = State.trackables[trackable]
 	if not data then
-		return
+		return self
 	end
 
 	-- Exit Logic
@@ -116,11 +118,14 @@ function Group:UntrackItem(trackable: Types.Trackable)
 	if next(data.memberOfGroups) == nil then
 		State.trackables[trackable] = nil
 	end
+
+	return self
 end
 
-function Group:SetPriority(p: number)
+function Group:SetPriority(p: number): Types.Group
 	State.groupPriorityMap[self.UID] = p
 	State.isDirty = true
+	return self
 end
 
 function Group:IsItemInside(trackable: Types.Trackable): boolean

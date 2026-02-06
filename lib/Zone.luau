@@ -15,9 +15,9 @@ function Zone.new(cframe: CFrame, size: Vector3, shape: Types.ShapeType, associa
 		Shape = shape,
 	}
 
-	if shape == "Ball" then
+	if shape == 'Ball' then
 		object.radius = halfSize.X
-	elseif shape == "Cylinder" then
+	elseif shape == 'Cylinder' then
 		local halfHeight = halfSize.X
 		object.start = object.Position - object.CFrame.RightVector * halfHeight
 		object.axis = object.CFrame.RightVector
@@ -36,7 +36,7 @@ function Zone.new(cframe: CFrame, size: Vector3, shape: Types.ShapeType, associa
 	return (self :: any) :: Types.Zone
 end
 
-function Zone:BindToGroups(...)
+function Zone:BindToGroups(...): Types.Zone
 	local watching = State.zoneWatchingGroups[self.index] or {}
 	State.zoneWatchingGroups[self.index] = watching
 	for _, g in { ... } do
@@ -45,12 +45,13 @@ function Zone:BindToGroups(...)
 		end
 	end
 	State.isDirty = true
+	return self
 end
 
-function Zone:UnbindFromGroups(...)
+function Zone:UnbindFromGroups(...): Types.Zone
 	local watching = State.zoneWatchingGroups[self.index]
 	if not watching then
-		return
+		return self
 	end
 
 	for _, g in { ... } do
@@ -64,6 +65,8 @@ function Zone:UnbindFromGroups(...)
 		State.zoneWatchingGroups[self.index] = nil
 	end
 	State.isDirty = true
+
+	return self
 end
 
 function Zone:GetGroups(): { Types.Group }
