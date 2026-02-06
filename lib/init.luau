@@ -11,18 +11,6 @@ local Zone = require(script.Zone)
 local Group = require(script.Group)
 local Strategy = require(script.Strategy)
 
-local candidatePriority = table.create(16)
-local candidateIndex = table.create(16)
-local candidateList = table.create(16)
-
-local MOVE_THRESHOLD = 0.1
-local MOVE_THRESHOLD_SQ = MOVE_THRESHOLD * MOVE_THRESHOLD
-
-local STRAT_POS = Strategy.POS
-local STRAT_PRIM = Strategy.PRIM
-local STRAT_WORLD = Strategy.WORLD
-local STRAT_CFRAME = Strategy.CFRAME
-
 local trackables = State.trackables
 local objects = State.objects
 local zoneWatchingGroups = State.zoneWatchingGroups
@@ -33,10 +21,58 @@ local groupActiveMembers = State.groupActiveMembers
 local groupExitedCallbacks = State.groupExitedCallbacks
 local zoneIndexToZoneObj = State.zoneIndexToZoneObj
 
+local ctx_pos: Vector3
+local ctx_data: any
+local ctx_cCount: number = 0
+local ctx_lowestWin: number
+local ctx_candidatePriority = table.create(16)
+local ctx_candidateIndex = table.create(16)
+local ctx_candidateList = table.create(16)
+
+local MOVE_THRESHOLD = 0.1
+local MOVE_THRESHOLD_SQ = MOVE_THRESHOLD * MOVE_THRESHOLD
+
+local STRAT_POS = Strategy.POS
+local STRAT_PRIM = Strategy.PRIM
+local STRAT_WORLD = Strategy.WORLD
+local STRAT_CFRAME = Strategy.CFRAME
+
+local function queryCallback(zoneId: number)
+	local groups = zoneWatchingGroups[zoneId]
+	if not groups then
+		return
+	end
+
+	if not Geometry.IsPointInShape(ctx_pos, objects[zoneId]) then
+		return
+	end
+
+	for _, gUID in groups do
+		if ctx_data.memberOfGroups[gUID] then
+			local pri = groupPriorityMap[gUID] or 1e6
+			local currentBestPri = ctx_candidatePriority[gUID]
+			if not currentBestPri or pri < currentBestPri then
+				if not currentBestPri then
+					ctx_cCount += 1
+					ctx_candidateList[ctx_cCount] = gUID
+				end
+
+				ctx_candidateIndex[gUID] = zoneId
+				ctx_candidatePriority[gUID] = pri
+
+				if pri < ctx_lowestWin then
+					ctx_lowestWin = pri
+				end
+			end
+		end
+	end
+end
+
 local function fireCallback(callbacks, trackable, zone, customData)
 	if not callbacks then
 		return
 	end
+
 	for _, cb in callbacks do
 		task.spawn(cb, trackable, zone, customData)
 	end
@@ -58,6 +94,7 @@ RunService.Heartbeat:Connect(function()
 	debug.profilebegin('QuickBounds_Step')
 	local start = os.clock()
 	local processed = 0
+	local frameBudget = State.frameBudget
 	local forceRefresh = State.isDirty
 	State.isDirty = false
 
@@ -91,48 +128,19 @@ RunService.Heartbeat:Connect(function()
 		data.isDirty = false
 
 		-- Query spatial map
-		table.clear(candidatePriority)
-		table.clear(candidateIndex)
-		table.clear(candidateList)
-		local cCount = 0
-		local lowestWin = math.huge
+		ctx_pos = pos
+		ctx_data = data
+		ctx_cCount = 0
+		ctx_lowestWin = math.huge
 
-		SpatialIndex.QueryPoint(State.rootNode, pos, function(zoneId)
-			local groups = zoneWatchingGroups[zoneId]
-			if not groups then
-				return
-			end
-
-			if not Geometry.IsPointInShape(pos, objects[zoneId]) then
-				return
-			end
-
-			for _, gUID in groups do
-				if data.memberOfGroups[gUID] then
-					local pri = groupPriorityMap[gUID] or 1e6
-					local existPri = candidatePriority[gUID]
-
-					if not existPri or pri < existPri then
-						if not existPri then
-							cCount += 1
-							candidateList[cCount] = gUID
-						end
-						candidateIndex[gUID] = zoneId
-						candidatePriority[gUID] = pri
-						if pri < lowestWin then
-							lowestWin = pri
-						end
-					end
-				end
-			end
-		end)
+		SpatialIndex.QueryPoint(State.rootNode, pos, queryCallback)
 
 		local current = data.activeGroupMemberships
 
 		-- Check exits
 		for gUID, oldZoneIdx in current do
-			local newPri = candidatePriority[gUID]
-			if not newPri or newPri > lowestWin then
+			local newPri = ctx_candidatePriority[gUID]
+			if not newPri or newPri > ctx_lowestWin then
 				current[gUID] = nil
 
 				if groupActiveMembers[gUID] then
@@ -146,13 +154,13 @@ RunService.Heartbeat:Connect(function()
 		end
 
 		-- Check entries
-		for i = 1, cCount do
-			local gUID = candidateList[i]
-			local pri = candidatePriority[gUID]
+		for i = 1, ctx_cCount do
+			local gUID = ctx_candidateList[i]
+			local pri = ctx_candidatePriority[gUID]
 
-			if pri <= lowestWin then
+			if pri <= ctx_lowestWin then
 				if not current[gUID] then
-					local newZoneIdx = candidateIndex[gUID]
+					local newZoneIdx = ctx_candidateIndex[gUID]
 					current[gUID] = newZoneIdx
 
 					groupActiveMembers[gUID][trackable] = true
@@ -162,10 +170,14 @@ RunService.Heartbeat:Connect(function()
 					fireCallback(groupEnteredCallbacks[gUID], trackable, zone, cd)
 				end
 			end
+
+			ctx_candidatePriority[gUID] = nil
+			ctx_candidateIndex[gUID] = nil
+			ctx_candidateList[i] = nil
 		end
 
 		processed += 1
-		if processed % 32 == 0 and (os.clock() - start) > State.frameBudget then
+		if processed % 32 == 0 and (os.clock() - start) > frameBudget then
 			break
 		end
 	end
