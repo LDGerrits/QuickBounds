@@ -22,12 +22,12 @@ local groupExitedCallbacks = State.groupExitedCallbacks
 local zoneIndexToZoneObj = State.zoneIndexToZoneObj
 
 local ctx_pos: Vector3
-local ctx_data: any
+local ctx_data: Types.TrackableData
 local ctx_cCount: number = 0
 local ctx_lowestWin: number
-local ctx_candidatePriority = table.create(16)
-local ctx_candidateIndex = table.create(16)
-local ctx_candidateList = table.create(16)
+local ctx_candidatePriority: { [number]: number } = table.create(16)
+local ctx_candidateIndex: { [number]: number } = table.create(16)
+local ctx_candidateList: { [number]: number } = table.create(16)
 
 local MOVE_THRESHOLD = 0.1
 local MOVE_THRESHOLD_SQ = MOVE_THRESHOLD * MOVE_THRESHOLD
@@ -36,37 +36,6 @@ local STRAT_POS = Strategy.POS
 local STRAT_PRIM = Strategy.PRIM
 local STRAT_WORLD = Strategy.WORLD
 local STRAT_CFRAME = Strategy.CFRAME
-
-local function queryCallback(zoneId: number)
-	local groups = zoneWatchingGroups[zoneId]
-	if not groups then
-		return
-	end
-
-	if not Geometry.IsPointInShape(ctx_pos, objects[zoneId]) then
-		return
-	end
-
-	for _, gUID in groups do
-		if ctx_data.memberOfGroups[gUID] then
-			local pri = groupPriorityMap[gUID] or 1e6
-			local currentBestPri = ctx_candidatePriority[gUID]
-			if not currentBestPri or pri < currentBestPri then
-				if not currentBestPri then
-					ctx_cCount += 1
-					ctx_candidateList[ctx_cCount] = gUID
-				end
-
-				ctx_candidateIndex[gUID] = zoneId
-				ctx_candidatePriority[gUID] = pri
-
-				if pri < ctx_lowestWin then
-					ctx_lowestWin = pri
-				end
-			end
-		end
-	end
-end
 
 local function fireCallback(callbacks, trackable, zone, customData)
 	if not callbacks then
@@ -78,10 +47,55 @@ local function fireCallback(callbacks, trackable, zone, customData)
 	end
 end
 
+local function queryCallback(zoneId: number)
+	local groups = zoneWatchingGroups[zoneId]
+	if not groups then
+		return
+	end
+
+	local memberOfGroups = ctx_data.memberOfGroups
+
+	-- If the trackable isn't a member of any group this zone watches, skip the geometry entirely.
+	local isMemberOfAny = false
+	for _, gUID in groups do
+		if memberOfGroups[gUID] then
+			-- Early exit if this group was already found this frame.
+			if not ctx_candidatePriority[gUID] then
+				isMemberOfAny = true
+				break
+			end
+		end
+	end
+
+	if not isMemberOfAny then
+		return
+	end
+
+	if not Geometry.IsPointInShape(ctx_pos, objects[zoneId]) then
+		return
+	end
+
+	-- Process the groups
+	for _, gUID in groups do
+		if memberOfGroups[gUID] then
+			local pri = groupPriorityMap[gUID] or 1e6
+
+			ctx_cCount += 1
+			ctx_candidateList[ctx_cCount] = gUID
+			ctx_candidateIndex[gUID] = zoneId
+			ctx_candidatePriority[gUID] = pri
+
+			if pri < ctx_lowestWin then
+				ctx_lowestWin = pri
+			end
+		end
+	end
+end
+
 RunService.Heartbeat:Connect(function()
 	if State.pendingRebuild then
 		debug.profilebegin('QuickBounds_Build')
-		State.rootNode = SpatialIndex.Build(State.objects)
+		State.rootNode = SpatialIndex.Build(objects)
 		State.pendingRebuild = false
 		debug.profileend()
 		State.isDirty = true
@@ -265,7 +279,7 @@ return {
 		local foundUIDs = {}
 		if State.rootNode then
 			SpatialIndex.QueryPoint(State.rootNode, position, function(zoneId)
-				if Geometry.IsPointInShape(position, State.objects[zoneId]) then
+				if Geometry.IsPointInShape(position, objects[zoneId]) then
 					local groups = State.zoneWatchingGroups[zoneId]
 					if groups then
 						for _, uid in groups do
