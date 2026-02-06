@@ -1,26 +1,9 @@
 --!native
---!optimize 2
 --!strict
 
+local Types = require(script.Parent.Types)
+
 local Geometry = {}
-
-export type ShapeType = "Block" | "Ball" | "Cylinder" | "Wedge"
-
-export type BoundingVolume = {
-	Shape: ShapeType,
-	Position: Vector3,
-	CFrame: CFrame,
-	HalfSize: Vector3,
-
-	-- sphere specific
-	radius: number?,
-
-	-- cylinder specific
-	start: Vector3?,
-	axis: Vector3?,
-	axisLength: number?,
-	radiusSquared: number?,
-}
 
 local MORTON_SHIFT16_MASK = 0xFF0000FF
 local MORTON_SHIFT8_MASK = 0xF00F00F
@@ -49,7 +32,7 @@ function Geometry.UnionBounds(minA: Vector3, maxA: Vector3, minB: Vector3, maxB:
 	return vector.min(minA, minB), vector.max(maxA, maxB)
 end
 
-function Geometry.GetObjectBounds(object: BoundingVolume): (Vector3, Vector3)
+function Geometry.GetObjectBounds(object: Types.BoundingVolume): (Vector3, Vector3)
 	local halfSize = object.HalfSize
 	local cframe = object.CFrame
 	local center = object.Position
@@ -75,14 +58,14 @@ function Geometry.PositionToMortonCode(position: Vector3, sceneMin: Vector3, sce
 	return bit32.bor(expandBits(x), bit32.lshift(expandBits(y), 1), bit32.lshift(expandBits(z), 2))
 end
 
-function Geometry.IsPointInShape(point: Vector3, object: BoundingVolume): boolean
-	if object.Shape == "Block" then
+function Geometry.IsPointInShape(point: Vector3, object: Types.BoundingVolume): boolean
+	if object.Shape == 'Block' then
 		local localPoint = vector.abs(object.CFrame:PointToObjectSpace(point))
 		return vector.min(localPoint, object.HalfSize) == localPoint
-	elseif object.Shape == "Ball" then
+	elseif object.Shape == 'Ball' then
 		local radius = object.radius :: number
 		return vector.dot(object.Position - point, object.Position - point) <= (radius * radius)
-	elseif object.Shape == "Cylinder" then
+	elseif object.Shape == 'Cylinder' then
 		local toPoint = point - object.start :: Vector3
 		local projection = vector.dot(toPoint, object.axis :: Vector3)
 
@@ -92,7 +75,7 @@ function Geometry.IsPointInShape(point: Vector3, object: BoundingVolume): boolea
 			return distanceSq <= object.radiusSquared :: number
 		end
 		return false
-	elseif object.Shape == "Wedge" then
+	elseif object.Shape == 'Wedge' then
 		local localPoint = object.CFrame:PointToObjectSpace(point)
 		local absolutePoint = vector.abs(localPoint)
 		if vector.min(absolutePoint, object.HalfSize) == absolutePoint then

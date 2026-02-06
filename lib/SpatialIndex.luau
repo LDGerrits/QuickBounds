@@ -1,20 +1,12 @@
 --!native
---!optimize 2
 --!strict
 
 local Geometry = require(script.Parent.Geometry)
+local Types = require(script.Parent.Types)
 
-export type ListItem = {
+type ListItem = {
 	id: number,
 	mortonCode: number,
-}
-
-export type Node = {
-	left: Node?,
-	right: Node?,
-	min: Vector3,
-	max: Vector3,
-	id: number, -- -1 for internal nodes
 }
 
 local SpatialIndex = {}
@@ -61,7 +53,7 @@ local function createSubTree(
 	boundsMax: { Vector3 },
 	beginIndex: number,
 	endIndex: number
-): Node
+): Types.Node
 	if beginIndex == endIndex then
 		local id = list[beginIndex].id
 		return { min = boundsMin[id], max = boundsMax[id], id = id }
@@ -83,7 +75,7 @@ end
 local HUGE_VECTOR = Vector3.one * math.huge
 local NEGATIVE_HUGE_VECTOR = -HUGE_VECTOR
 
-function SpatialIndex.Build(objects: { Geometry.BoundingVolume }): Node?
+function SpatialIndex.Build(objects: { Geometry.BoundingVolume }): Types.Node?
 	table.clear(traversalStack)
 
 	local min = HUGE_VECTOR
@@ -123,10 +115,11 @@ function SpatialIndex.Build(objects: { Geometry.BoundingVolume }): Node?
 	if count > 0 then
 		return createSubTree(listCache, objMin, objMax, 1, count)
 	end
+
 	return nil
 end
 
-function SpatialIndex.QueryPoint(root: Node?, point: Vector3, callback: (id: number) -> ())
+function SpatialIndex.QueryPoint(root: Types.Node?, point: Vector3, callback: (id: number) -> ())
 	if not root then
 		return
 	end
@@ -151,9 +144,9 @@ function SpatialIndex.QueryPoint(root: Node?, point: Vector3, callback: (id: num
 				callback(node.id)
 			else
 				stackPtr += 1
-				traversalStack[stackPtr] = node.left :: Node
+				traversalStack[stackPtr] = node.left :: Types.Node
 				stackPtr += 1
-				traversalStack[stackPtr] = node.right :: Node
+				traversalStack[stackPtr] = node.right :: Types.Node
 			end
 		end
 	end
