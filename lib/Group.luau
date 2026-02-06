@@ -28,13 +28,17 @@ function Group.new(priority: number?): Types.Group
 	return g
 end
 
-function Group:TrackItem(trackable: Types.Trackable, customData: any?)
+local function track(self: Types.Group, trackable: Types.Trackable, customData: any?, useVolume: boolean)
 	local data = State.trackables[trackable]
 	if not data then
-		local strat
+		local strat, size
+
 		if typeof(trackable) == "Instance" then
 			if trackable:IsA("BasePart") then
 				strat = STRAT_POS
+				if useVolume then
+					size = trackable.Size
+				end
 			elseif trackable:IsA("Attachment") or trackable:IsA("Bone") then
 				strat = STRAT_WORLD
 			elseif trackable:IsA("Camera") then
@@ -59,11 +63,18 @@ function Group:TrackItem(trackable: Types.Trackable, customData: any?)
 			return
 		end
 
+		if useVolume and not size then
+			warn("Volume tracking requires a BasePart. Falling back to point tracking.")
+			useVolume = false
+		end
+
 		data = {
 			activeGroupMemberships = {},
 			memberOfGroups = {},
 			lastPosition = Vector3.zero,
 			strategy = strat,
+			useVolume = useVolume,
+			size = size,
 			isDirty = true,
 		}
 		State.trackables[trackable] = data
@@ -80,13 +91,20 @@ function Group:TrackItem(trackable: Types.Trackable, customData: any?)
 	data.isDirty = true
 end
 
+function Group:TrackItem(trackable: Types.Trackable, customData: any?)
+	track(self, trackable, customData, false)
+end
+
+function Group:TrackItemVolume(part: BasePart, customData: any?)
+	track(self, part, customData, true)
+end
+
 function Group:UntrackItem(trackable: Types.Trackable)
 	local data = State.trackables[trackable]
 	if not data then
 		return
 	end
 
-	-- Exit Logic
 	local oldZoneIdx = data.activeGroupMemberships[self.UID]
 	if oldZoneIdx then
 		if State.groupActiveMembers[self.UID] then

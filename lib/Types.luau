@@ -1,6 +1,6 @@
 --!strict
 
-export type ShapeType = "Block" | "Ball" | "Cylinder" | "Wedge" | "CornerWedge"
+export type ShapeType = "Block" | "Ball" | "Cylinder"
 
 export type BoundingVolume = {
 	Position: Vector3,
@@ -26,7 +26,7 @@ export type Node = {
 	id: number, -- -1 for internal nodes
 }
 
-export type TrackableTable = {
+export type PVInstanceTable = {
 	Position: Vector3?,
 	WorldPosition: Vector3?,
 	CFrame: CFrame?,
@@ -34,7 +34,7 @@ export type TrackableTable = {
 	[any]: any,
 }
 
-export type Trackable = BasePart | Model | Camera | Attachment | Bone | TrackableTable
+export type Trackable = BasePart | Model | Camera | Attachment | Bone | PVInstanceTable
 
 export type UID = number
 
@@ -43,6 +43,7 @@ export type TrackableData = {
 	memberOfGroups: { [UID]: boolean },
 	lastPosition: Vector3,
 	strategy: number,
+	useVolume: boolean,
 	isDirty: boolean,
 }
 
@@ -59,6 +60,7 @@ export type Callback = (Trackable, Zone, any?) -> ()
 
 export type Group = {
 	TrackItem: (self: Group, trackable: Trackable, customData: any?) -> (),
+	TrackItemVolume: (self: Group, trackable: BasePart, customData: any?) -> (), -- TODO It should be able to handle more than just a BasePart
 	UntrackItem: (self: Group, trackable: Trackable) -> (),
 	SetPriority: (self: Group, priority: number) -> (),
 	IsItemInside: (self: Group, trackable: Trackable) -> boolean,

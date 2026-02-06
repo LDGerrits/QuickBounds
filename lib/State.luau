@@ -8,16 +8,16 @@ local State = {}
 State.nextZoneId = 1
 State.nextGroupId = 1
 
--- Geometry / Spatial
+-- Geometry
 State.objects = {} :: { Types.BoundingVolume }
 State.rootNode = nil :: Types.Node?
 State.pendingRebuild = false
 State.isDirty = false
 State.frameBudget = 1 / 1000
 
--- Trackable Storage (Weak Keys)
-State.trackables = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Trackable]: Types.TrackableData }
-State.trackableCustomData = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Trackable]: { [number]: any } }
+-- Trackable
+State.trackables = (setmetatable({}, { __mode = "k" }) :: any) :: { [Types.Trackable]: Types.TrackableData }
+State.trackableCustomData = (setmetatable({}, { __mode = "k" }) :: any) :: { [Types.Trackable]: { [number]: any } }
 
 -- Maps
 State.groupActiveMembers = {} :: { [number]: { [Types.Trackable]: boolean } }
