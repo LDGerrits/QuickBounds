@@ -26,7 +26,7 @@ export type Node = {
 	id: number, -- -1 for internal nodes
 }
 
-export type TrackableTable = {
+export type ItemTable = {
 	Position: Vector3?,
 	WorldPosition: Vector3?,
 	CFrame: CFrame?,
@@ -34,11 +34,11 @@ export type TrackableTable = {
 	[any]: any,
 }
 
-export type Trackable = BasePart | Model | Camera | Attachment | Bone | TrackableTable
+export type Item = BasePart | Model | Camera | Attachment | Bone | ItemTable
 
 export type UID = number
 
-export type TrackableData = {
+export type ItemData = {
 	activeGroupMemberships: { [UID]: number },
 	memberOfGroups: { [UID]: boolean },
 	lastPosition: Vector3,
@@ -55,19 +55,19 @@ export type Zone = {
 	part: BasePart?,
 }
 
-export type Callback = (Trackable, Zone, any?) -> ()
+export type Callback = (Item, Zone, any?) -> ()
 
 export type Group = {
 	SetPriority: (self: Group, priority: number) -> Group,
-	TrackItem: (self: Group, trackable: Trackable, customData: any?) -> Group,
-	UntrackItem: (self: Group, trackable: Trackable) -> Group,
+	TrackItem: (self: Group, item: Item, customData: any?) -> Group,
+	UntrackItem: (self: Group, item: Item) -> Group,
 	OnEntered: (self: Group, callback: Callback) -> () -> (),
 	OnExited: (self: Group, callback: Callback) -> () -> (),
-	IsItemInside: (self: Group, trackable: Trackable) -> boolean,
+	IsItemInside: (self: Group, item: Item) -> boolean,
 	IsPointInside: (self: Group, position: Vector3) -> boolean,
-	IsItemTracked: (self: Group, trackable: Trackable) -> boolean,
-	GetTrackedItems: (self: Group) -> { Trackable },
-	GetItemsInside: (self: Group) -> { Trackable },
+	IsItemTracked: (self: Group, item: Item) -> boolean,
+	GetTrackedItems: (self: Group) -> { Item },
+	GetItemsInside: (self: Group) -> { Item },
 	GetZones: (self: Group) -> { Zone },
 	Destroy: (self: Group) -> (),
 	UID: UID,

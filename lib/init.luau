@@ -11,18 +11,18 @@ local Zone = require(script.Zone)
 local Group = require(script.Group)
 local Strategy = require(script.Strategy)
 
-local trackables = State.trackables
+local items = State.items
 local objects = State.objects
 local zoneWatchingGroups = State.zoneWatchingGroups
 local groupPriorityMap = State.groupPriorityMap
-local trackableCustomData = State.trackableCustomData
+local itemCustomData = State.itemCustomData
 local groupEnteredCallbacks = State.groupEnteredCallbacks
 local groupActiveMembers = State.groupActiveMembers
 local groupExitedCallbacks = State.groupExitedCallbacks
 local zoneIndexToZoneObj = State.zoneIndexToZoneObj
 
 local ctx_pos: Vector3
-local ctx_data: Types.TrackableData
+local ctx_data: Types.ItemData
 local ctx_cCount: number = 0
 local ctx_lowestWin: number
 local ctx_candidatePriority: { [number]: number } = table.create(16)
@@ -37,13 +37,13 @@ local STRAT_PRIM = Strategy.PRIM
 local STRAT_WORLD = Strategy.WORLD
 local STRAT_CFRAME = Strategy.CFRAME
 
-local function fireCallback(callbacks, trackable, zone, customData)
+local function fireCallback(callbacks, item, zone, customData)
 	if not callbacks then
 		return
 	end
 
 	for _, cb in callbacks do
-		task.spawn(cb, trackable, zone, customData)
+		task.spawn(cb, item, zone, customData)
 	end
 end
 
@@ -55,7 +55,7 @@ local function queryCallback(zoneId: number)
 
 	local memberOfGroups = ctx_data.memberOfGroups
 
-	-- If the trackable isn't a member of any group this zone watches, skip the geometry entirely.
+	-- If the item isn't a member of any group this zone watches, skip the geometry entirely.
 	local isMemberOfAny = false
 	for _, gUID in groups do
 		if memberOfGroups[gUID] then
@@ -112,19 +112,19 @@ RunService.Heartbeat:Connect(function()
 	local forceRefresh = State.isDirty
 	State.isDirty = false
 
-	for trackable, data in trackables do
+	for item, data in items do
 		local pos
 		local strategy = data.strategy
 		if strategy == STRAT_POS then
-			pos = (trackable :: any).Position
+			pos = (item :: any).Position
 		elseif strategy == STRAT_WORLD then
-			pos = (trackable :: any).WorldPosition
+			pos = (item :: any).WorldPosition
 		elseif strategy == STRAT_PRIM then
-			pos = (trackable :: any).PrimaryPart.Position
+			pos = (item :: any).PrimaryPart.Position
 		elseif strategy == STRAT_CFRAME then
-			pos = (trackable :: any).CFrame.Position
+			pos = (item :: any).CFrame.Position
 		else
-			pos = (trackable :: any):GetPivot().Position
+			pos = (item :: any):GetPivot().Position
 		end
 
 		if not forceRefresh and not data.isDirty then
@@ -158,12 +158,12 @@ RunService.Heartbeat:Connect(function()
 				current[gUID] = nil
 
 				if groupActiveMembers[gUID] then
-					groupActiveMembers[gUID][trackable] = nil
+					groupActiveMembers[gUID][item] = nil
 				end
 
 				local zone = zoneIndexToZoneObj[oldZoneIdx]
-				local cd = trackableCustomData[trackable] and trackableCustomData[trackable][gUID]
-				fireCallback(groupExitedCallbacks[gUID], trackable, zone, cd)
+				local cd = itemCustomData[item] and itemCustomData[item][gUID]
+				fireCallback(groupExitedCallbacks[gUID], item, zone, cd)
 			end
 		end
 
@@ -177,11 +177,11 @@ RunService.Heartbeat:Connect(function()
 					local newZoneIdx = ctx_candidateIndex[gUID]
 					current[gUID] = newZoneIdx
 
-					groupActiveMembers[gUID][trackable] = true
+					groupActiveMembers[gUID][item] = true
 
 					local zone = zoneIndexToZoneObj[newZoneIdx]
-					local cd = trackableCustomData[trackable] and trackableCustomData[trackable][gUID]
-					fireCallback(groupEnteredCallbacks[gUID], trackable, zone, cd)
+					local cd = itemCustomData[item] and itemCustomData[item][gUID]
+					fireCallback(groupEnteredCallbacks[gUID], item, zone, cd)
 				end
 			end
 
@@ -200,7 +200,7 @@ end)
 
 export type Group = Types.Group
 export type Zone = Types.Zone
-export type Trackable = Types.Trackable
+export type Item = Types.Item
 
 return {
 	newZone = Zone.new,
@@ -216,7 +216,7 @@ return {
 		return Zone.new(part.CFrame, part.Size, shape, part)
 	end,
 
-	IsItemTrackable = function(item: any): boolean
+	IsItemItem = function(item: any): boolean
 		if typeof(item) == 'Instance' then
 			if item:IsA('BasePart') then
 				return true
@@ -244,8 +244,8 @@ return {
 
 	IsItemTracked = Group.IsItemTracked,
 
-	GetGroupsForItem = function(trackable: Types.Trackable): { Types.Group }
-		local data = State.trackables[trackable]
+	GetGroupsForItem = function(item: Types.Item): { Types.Group }
+		local data = State.items[item]
 		if not data then
 			return {}
 		end
@@ -259,8 +259,8 @@ return {
 		return results
 	end,
 
-	GetGroupsAtItem = function(trackable: Types.Trackable): { Types.Group }
-		local data = State.trackables[trackable]
+	GetGroupsAtItem = function(item: Types.Item): { Types.Group }
+		local data = State.items[item]
 		if not data then
 			return {}
 		end

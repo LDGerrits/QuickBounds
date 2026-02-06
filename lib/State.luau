@@ -15,12 +15,12 @@ State.pendingRebuild = false
 State.isDirty = false
 State.frameBudget = 1 / 1000
 
--- Trackable Storage (Weak Keys)
-State.trackables = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Trackable]: Types.TrackableData }
-State.trackableCustomData = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Trackable]: { [number]: any } }
+-- Item storage
+State.items = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Item]: Types.ItemData }
+State.itemCustomData = (setmetatable({}, { __mode = 'k' }) :: any) :: { [Types.Item]: { [number]: any } }
 
 -- Maps
-State.groupActiveMembers = {} :: { [number]: { [Types.Trackable]: boolean } }
+State.groupActiveMembers = {} :: { [number]: { [Types.Item]: boolean } }
 State.groupPriorityMap = {} :: { [number]: number }
 State.groupEnteredCallbacks = {} :: { [number]: { Types.Callback } }
 State.groupExitedCallbacks = {} :: { [number]: { Types.Callback } }
