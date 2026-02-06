@@ -15,10 +15,23 @@ local candidatePriority = table.create(16)
 local candidateIndex = table.create(16)
 local candidateList = table.create(16)
 
+local MOVE_THRESHOLD = 0.1
+local MOVE_THRESHOLD_SQ = MOVE_THRESHOLD * MOVE_THRESHOLD
+
 local STRAT_POS = Strategy.POS
 local STRAT_PRIM = Strategy.PRIM
 local STRAT_WORLD = Strategy.WORLD
 local STRAT_CFRAME = Strategy.CFRAME
+
+local trackables = State.trackables
+local objects = State.objects
+local zoneWatchingGroups = State.zoneWatchingGroups
+local groupPriorityMap = State.groupPriorityMap
+local trackableCustomData = State.trackableCustomData
+local groupEnteredCallbacks = State.groupEnteredCallbacks
+local groupActiveMembers = State.groupActiveMembers
+local groupExitedCallbacks = State.groupExitedCallbacks
+local zoneIndexToZoneObj = State.zoneIndexToZoneObj
 
 local function fireCallback(callbacks, trackable, zone, customData)
 	if not callbacks then
@@ -48,11 +61,6 @@ RunService.Heartbeat:Connect(function()
 	local forceRefresh = State.isDirty
 	State.isDirty = false
 
-	local trackables = State.trackables
-	local objects = State.objects
-	local zoneWatchingGroups = State.zoneWatchingGroups
-	local groupPriorityMap = State.groupPriorityMap
-
 	for trackable, data in trackables do
 		local pos
 		local strategy = data.strategy
@@ -68,8 +76,15 @@ RunService.Heartbeat:Connect(function()
 			pos = (trackable :: any):GetPivot().Position
 		end
 
-		if not forceRefresh and not data.isDirty and data.lastPosition == pos then
-			continue
+		if not forceRefresh and not data.isDirty then
+			local lastPos = data.lastPosition
+			local dx = pos.X - lastPos.X
+			local dy = pos.Y - lastPos.Y
+			local dz = pos.Z - lastPos.Z
+			local d2 = (dx * dx) + (dy * dy) + (dz * dz)
+			if d2 < MOVE_THRESHOLD_SQ then
+				continue
+			end
 		end
 
 		data.lastPosition = pos
@@ -120,13 +135,13 @@ RunService.Heartbeat:Connect(function()
 			if not newPri or newPri > lowestWin then
 				current[gUID] = nil
 
-				if State.groupActiveMembers[gUID] then
-					State.groupActiveMembers[gUID][trackable] = nil
+				if groupActiveMembers[gUID] then
+					groupActiveMembers[gUID][trackable] = nil
 				end
 
-				local zone = State.zoneIndexToZoneObj[oldZoneIdx]
-				local cd = State.trackableCustomData[trackable] and State.trackableCustomData[trackable][gUID]
-				fireCallback(State.groupExitedCallbacks[gUID], trackable, zone, cd)
+				local zone = zoneIndexToZoneObj[oldZoneIdx]
+				local cd = trackableCustomData[trackable] and trackableCustomData[trackable][gUID]
+				fireCallback(groupExitedCallbacks[gUID], trackable, zone, cd)
 			end
 		end
 
@@ -140,11 +155,11 @@ RunService.Heartbeat:Connect(function()
 					local newZoneIdx = candidateIndex[gUID]
 					current[gUID] = newZoneIdx
 
-					State.groupActiveMembers[gUID][trackable] = true
+					groupActiveMembers[gUID][trackable] = true
 
-					local zone = State.zoneIndexToZoneObj[newZoneIdx]
-					local cd = State.trackableCustomData[trackable] and State.trackableCustomData[trackable][gUID]
-					fireCallback(State.groupEnteredCallbacks[gUID], trackable, zone, cd)
+					local zone = zoneIndexToZoneObj[newZoneIdx]
+					local cd = trackableCustomData[trackable] and trackableCustomData[trackable][gUID]
+					fireCallback(groupEnteredCallbacks[gUID], trackable, zone, cd)
 				end
 			end
 		end
